@@ -218,6 +218,7 @@ PROVIDERS := \
 	gitlab \
 	grafana \
 	google-workspace \
+	gusto \
 	helm \
 	hetzner \
 	huggingface \

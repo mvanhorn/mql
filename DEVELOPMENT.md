@@ -215,6 +215,7 @@ use (
    ./mql/providers/gitlab
    ./mql/providers/google-workspace
    ./mql/providers/grafana
+   ./mql/providers/gusto
    ./mql/providers/hetzner
    ./mql/providers/huggingface
    ./mql/providers/ipinfo

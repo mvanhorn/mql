@@ -351,6 +351,21 @@ var DefaultProviders Providers = map[string]*Provider{
 		},
 	},
 
+	"gusto": {
+		Provider: &plugin.Provider{
+			Name:            "gusto",
+			ID:              "go.mondoo.com/mql/providers/gusto",
+			ConnectionTypes: []string{"gusto"},
+			Connectors: []plugin.Connector{
+				{
+					Name:  "gusto",
+					Use:   "gusto [--token <api-token>]",
+					Short: "a Gusto company",
+				},
+			},
+		},
+	},
+
 	"helm": {
 		Provider: &plugin.Provider{
 			Name:            "helm",
