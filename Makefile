@@ -223,6 +223,7 @@ PROVIDERS := \
 	huggingface \
 	ipinfo \
 	ipmi \
+	iru \
 	jamf \
 	k8s \
 	kustomize \
