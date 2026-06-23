@@ -239,6 +239,7 @@ PROVIDERS := \
 	openai \
 	openstack \
 	os \
+	postgres \
 	proxmox \
 	shodan \
 	slack \

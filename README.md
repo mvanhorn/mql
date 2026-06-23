@@ -151,6 +151,7 @@ To learn about Mondoo Platform, read the [Mondoo Platform docs](https://mondoo.c
 | OpenStack project             | `openstack`                | `mql shell openstack --cloud CLOUD_NAME` or<br></br>`mql shell openstack --auth-url AUTH_URL --username USER --password PASSWORD --project-name PROJECT` |
 | Proxmox VE                    | `proxmox`                  | `mql shell proxmox --host HOST --token TOKEN`                                                                                                   |
 | Palo Alto Networks PAN-OS     | `panos`                    | `mql shell panos --hostname DEVICE_IP --username admin --password PASSWORD`                                                                     |
+| PostgreSQL server             | `postgres`                 | `mql shell postgres --dsn postgresql://user:password@HOST:5432/postgres?sslmode=require`                                                        |
 | Running containers            | `docker`                   | `mql shell docker CONTAINER_ID`                                                                                                                 |
 | Shodan search engine          | `shodan`                   | `mql shell shodan`                                                                                                                              |
 | Slack team                    | `slack`                    | `mql shell slack --token TOKEN`                                                                                                                 |

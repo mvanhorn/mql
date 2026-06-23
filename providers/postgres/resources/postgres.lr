@@ -1,0 +1,375 @@
+// Copyright Mondoo, Inc. 2024, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+option provider = "go.mondoo.com/mql/providers/postgres"
+option go_package = "go.mondoo.com/mql/v13/providers/postgres/resources"
+
+// PostgreSQL server
+//
+// Examine a connected PostgreSQL server. Use this namespace to enumerate
+// databases, roles, extensions, runtime configuration via `settings`
+// (pg_settings), host-based authentication via `hbaRules`
+// (pg_hba_file_rules), `tablespaces`, `languages`, logical replication
+// state through `replicationSlots`, `publications`, and `subscriptions`.
+// `currentDatabase` and `currentUser` reveal the session context.
+postgresql {
+  // Server version string (server_version)
+  version() string
+  // Numeric server version (server_version_num, e.g. 160004 for 16.4)
+  versionNum() int
+  // Database the session is connected to
+  currentDatabase() string
+  // Role the session is running as
+  currentUser() string
+  // Time the server was started
+  startedAt() time
+  // Whether the server is running in recovery (replica)
+  inRecovery() bool
+  // Databases visible to the current role
+  databases() []postgresql.database
+  // Roles (pg_roles) visible to the current role
+  roles() []postgresql.role
+  // Installed extensions in the current database (pg_extension)
+  extensions() []postgresql.extension
+  // Available extensions on the server (pg_available_extensions)
+  availableExtensions() []postgresql.availableExtension
+  // Runtime configuration parameters (pg_settings)
+  settings() []postgresql.setting
+  // Host-based authentication rules currently loaded (pg_hba_file_rules)
+  hbaRules() []postgresql.hbaRule
+  // File-name mapping rules currently loaded (pg_ident_file_mappings)
+  identRules() []postgresql.identRule
+  // Logical or physical replication slots (pg_replication_slots)
+  replicationSlots() []postgresql.replicationSlot
+  // Publications defined in the current database (pg_publication)
+  publications() []postgresql.publication
+  // Logical replication subscriptions (pg_subscription)
+  subscriptions() []postgresql.subscription
+  // Tablespaces in the cluster (pg_tablespace)
+  tablespaces() []postgresql.tablespace
+  // Procedural languages registered in the current database (pg_language)
+  languages() []postgresql.language
+}
+
+// PostgreSQL database
+//
+// Examine a database in the connected cluster. Fields cover owner,
+// encoding, collation, connection limits, and whether the database is a
+// template. `sizeBytes` is the on-disk size as reported by
+// `pg_database_size`. The database name is the selection key — for
+// example `postgresql.databases.where(name == "postgres")`.
+private postgresql.database @defaults("name owner encoding") {
+  // OID of the database
+  oid int
+  // Database name
+  name string
+  // Role that owns the database
+  owner string
+  // Character set encoding (e.g., UTF8)
+  encoding string
+  // LC_COLLATE setting for this database
+  collation string
+  // LC_CTYPE setting for this database
+  ctype string
+  // Default tablespace for this database
+  tablespace string
+  // Whether the database accepts connections
+  allowConnections bool
+  // Whether the database is marked as a template
+  isTemplate bool
+  // Maximum number of concurrent connections (-1 = unlimited)
+  connectionLimit int
+  // On-disk size of the database in bytes (pg_database_size)
+  sizeBytes int
+}
+
+// PostgreSQL role
+//
+// Examine a database role (pg_roles). Roles may behave as users (LOGIN)
+// or as groups (no LOGIN). Privilege attributes — `superuser`,
+// `createDb`, `createRole`, `replication`, `bypassRls` — should be
+// audited tightly. `memberOf` lists roles this role inherits through
+// pg_auth_members. `validUntil` is the password expiry time when set.
+private postgresql.role @defaults("name superuser login") {
+  // OID of the role
+  oid int
+  // Role name
+  name string
+  // Role is a superuser
+  superuser bool
+  // Role attributes inherit through membership (rolinherit)
+  canBeInherited bool
+  // Role can create new databases
+  createDb bool
+  // Role can create new roles and alter / drop existing ones
+  createRole bool
+  // Role can log in (acts as a user, not just a group)
+  login bool
+  // Role can initiate replication and create / drop replication slots
+  replication bool
+  // Role bypasses every row-level security policy
+  bypassRls bool
+  // Maximum concurrent connections this role may make (-1 = unlimited)
+  connectionLimit int
+  // Password expiry timestamp (null when no expiry is set)
+  validUntil time
+  // Names of roles that this role is a member of
+  memberOf []string
+}
+
+// PostgreSQL installed extension
+//
+// Examine an extension installed in the current database (pg_extension).
+// `name` is the extension name and selection key — for example
+// `postgresql.extensions.where(name == "pgcrypto")`. `version` is the
+// installed version; `defaultVersion` from `pg_available_extensions`
+// tells you whether the installed copy is the latest available.
+private postgresql.extension @defaults("name version schema") {
+  // OID of the extension
+  oid int
+  // Extension name
+  name string
+  // Installed version
+  version string
+  // Schema the extension's objects live in
+  schema string
+  // Role that owns the extension
+  owner string
+  // Whether the extension can be relocated to a different schema
+  relocatable bool
+}
+
+// PostgreSQL available extension
+//
+// Examine an extension installable on the server
+// (pg_available_extensions). Compare `installedVersion` against
+// `defaultVersion` to spot extensions that are out of date. `comment`
+// is the short description from the extension's control file.
+private postgresql.availableExtension @defaults("name defaultVersion installedVersion") {
+  // Extension name
+  name string
+  // Default version installed by `CREATE EXTENSION` without VERSION
+  defaultVersion string
+  // Installed version in the current database (null when not installed)
+  installedVersion string
+  // Description from the extension's control file
+  comment string
+}
+
+// PostgreSQL runtime configuration setting
+//
+// Examine a single configuration parameter from `pg_settings`. `name`
+// is the parameter name and selection key — for example
+// `postgresql.settings.where(name == "ssl")`. `source` reveals where
+// the effective value came from (`default`, `configuration file`,
+// `command line`, `environment variable`, `client`, `session`,
+// `database`, `user`, `override`, ...). `sourceFile` and `sourceLine`
+// point at the config file when relevant. `pendingRestart` is true when
+// a change has been staged but requires a server restart to take effect.
+private postgresql.setting @defaults("name value source") {
+  // Parameter name
+  name string
+  // Effective value (always a string, regardless of underlying type)
+  value string
+  // Unit, when the parameter is sized in time or bytes (e.g. "ms", "kB")
+  unit string
+  // Logical group (e.g., "Connections and Authentication / SSL")
+  category string
+  // One-line description
+  shortDesc string
+  // Detailed description
+  extraDesc string
+  // Where the effective value was set (default, configuration file, ...)
+  source string
+  // Configuration file the value was read from (when source is a file)
+  sourceFile string
+  // Line within `sourceFile` (when source is a file)
+  sourceLine int
+  // Context required to change the parameter (internal, postmaster, sighup, backend, superuser-backend, user, superuser)
+  context string
+  // Data type (bool, enum, integer, real, string)
+  vartype string
+  // Allowed enum values (empty for non-enum parameters)
+  enumValues []string
+  // Minimum value (numeric parameters only)
+  minVal string
+  // Maximum value (numeric parameters only)
+  maxVal string
+  // Compiled-in default value
+  bootVal string
+  // Value applied by RESET
+  resetVal string
+  // Whether the value has been changed and a server restart is pending
+  pendingRestart bool
+}
+
+// PostgreSQL host-based authentication rule
+//
+// Examine a single rule loaded from pg_hba.conf (pg_hba_file_rules).
+// `lineNumber` is the line in the source file the rule came from. Audit
+// `authMethod` to flag insecure entries (`trust`, `password`) and
+// `address` to flag overly broad CIDRs (e.g. `0.0.0.0/0`). When a rule
+// fails to parse, `error` contains the parser's message.
+private postgresql.hbaRule @defaults("type databases userNames address authMethod") {
+  // Line number in the source file
+  lineNumber int
+  // Source file the rule was read from
+  fileName string
+  // Connection type (local, host, hostssl, hostnossl, hostgssenc, hostnogssenc)
+  type string
+  // Database names this rule applies to
+  databases []string
+  // Role names this rule applies to
+  userNames []string
+  // Client address (CIDR or hostname, empty for local rules)
+  address string
+  // Network mask (when `address` is a plain IP, not a CIDR)
+  netmask string
+  // Authentication method (trust, reject, md5, scram-sha-256, gss, sspi, ident, peer, ldap, radius, cert, pam, bsd)
+  authMethod string
+  // Authentication method options (e.g. `ldapserver`, `clientcert`)
+  options map[string]string
+  // Parser error, when the rule could not be loaded
+  error string
+}
+
+// PostgreSQL user name mapping rule
+//
+// Examine a single mapping from pg_ident.conf (pg_ident_file_mappings).
+// Mappings translate an external authenticated identity (Kerberos
+// principal, SSL CN, OS username) into a PostgreSQL role for `ident`,
+// `peer`, `gss`, and `cert` authentication methods. When a mapping
+// fails to parse, `error` contains the parser's message.
+private postgresql.identRule @defaults("mapName systemUsername pgUsername") {
+  // Line number in the source file
+  lineNumber int
+  // Source file the rule was read from
+  fileName string
+  // Map name referenced by a `map=NAME` option in pg_hba.conf
+  mapName string
+  // External (system) username or pattern
+  systemUsername string
+  // PostgreSQL role the external identity maps to
+  pgUsername string
+  // Parser error, when the rule could not be loaded
+  error string
+}
+
+// PostgreSQL replication slot
+//
+// Examine a replication slot (pg_replication_slots). Slots retain WAL
+// for consumers (logical or physical replicas, change-data-capture
+// tools). `active` is false when the consumer is disconnected — an
+// inactive slot still holds WAL and can fill the disk if abandoned.
+// `slotType` is `physical` or `logical`.
+private postgresql.replicationSlot @defaults("slotName slotType active") {
+  // Slot name
+  slotName string
+  // Output plugin (logical slots only)
+  plugin string
+  // Slot type (physical or logical)
+  slotType string
+  // Database the slot belongs to (logical slots only)
+  database string
+  // Whether a consumer is currently connected
+  active bool
+  // PID of the connected consumer (empty when inactive)
+  activePid int
+  // Whether the slot is temporary (dropped at session end)
+  temporary bool
+  // LSN that WAL is held from (restart_lsn)
+  restartLsn string
+  // LSN of the latest decoded transaction (confirmed_flush_lsn)
+  confirmedFlushLsn string
+  // WAL status (reserved, extended, unreserved, lost)
+  walStatus string
+  // Whether two-phase decoding is enabled
+  twoPhase bool
+}
+
+// PostgreSQL publication
+//
+// Examine a publication defined in the current database
+// (pg_publication). Publications expose change streams to logical
+// replication subscribers. `allTables` is true when the publication
+// includes every table. The four boolean flags reflect which DML
+// operations the publication replicates.
+private postgresql.publication @defaults("name owner allTables") {
+  // OID of the publication
+  oid int
+  // Publication name
+  name string
+  // Role that owns the publication
+  owner string
+  // Whether the publication includes every table in the database
+  allTables bool
+  // Whether INSERT operations are replicated
+  insertEnabled bool
+  // Whether UPDATE operations are replicated
+  updateEnabled bool
+  // Whether DELETE operations are replicated
+  deleteEnabled bool
+  // Whether TRUNCATE operations are replicated
+  truncateEnabled bool
+}
+
+// PostgreSQL logical replication subscription
+//
+// Examine a logical replication subscription (pg_subscription). A
+// subscription connects to a publisher's slot and applies the change
+// stream locally. `connInfo` is the libpq connection string used to
+// reach the publisher; it may contain credentials and is only readable
+// by superusers.
+private postgresql.subscription @defaults("name owner enabled") {
+  // OID of the subscription
+  oid int
+  // Subscription name
+  name string
+  // Role that owns the subscription
+  owner string
+  // Whether the subscription is enabled
+  enabled bool
+  // Connection string to the upstream publisher
+  connInfo string
+  // Slot name on the publisher
+  slotName string
+  // synchronous_commit setting for the apply worker
+  synchronousCommit string
+  // Publications this subscription is replicating from
+  publicationNames []string
+}
+
+// PostgreSQL tablespace
+//
+// Examine a tablespace (pg_tablespace). Tablespaces let the
+// administrator put database objects on a different filesystem from the
+// default data directory. `location` is the on-disk path on the server.
+// The built-in tablespaces `pg_default` and `pg_global` have an empty
+// location.
+private postgresql.tablespace @defaults("name owner location") {
+  // OID of the tablespace
+  oid int
+  // Tablespace name
+  name string
+  // Role that owns the tablespace
+  owner string
+  // On-disk path (empty for built-in pg_default and pg_global)
+  location string
+}
+
+// PostgreSQL procedural language
+//
+// Examine a procedural language registered in the current database
+// (pg_language). `trusted` languages can be used by non-superuser
+// roles. The selection key is the language name — for example
+// `postgresql.languages.where(name == "plpython3u")`.
+private postgresql.language @defaults("name trusted") {
+  // OID of the language
+  oid int
+  // Language name
+  name string
+  // Role that owns the language
+  owner string
+  // Whether the language is trusted (callable by non-superusers)
+  trusted bool
+}
