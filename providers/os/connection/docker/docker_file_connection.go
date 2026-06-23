@@ -25,7 +25,14 @@ type DockerfileConnection struct {
 	// FileAbsSrc must be the absolute path of the Dockerfile so
 	// that we find the file downstream
 	FileAbsSrc string
-	osFamily   shared.OSFamily
+	// RepositoryURL is the HTTPS URL of the source repository the Dockerfile
+	// was discovered in. Empty when the Dockerfile has no repository context.
+	RepositoryURL string
+	// RepositoryOrg and RepositoryName identify the source repository, parsed
+	// from the git ssh-url. Empty when the Dockerfile has no repository context.
+	RepositoryOrg  string
+	RepositoryName string
+	osFamily       shared.OSFamily
 }
 
 func NewDockerfileConnection(_ uint32,
@@ -66,6 +73,7 @@ func NewDockerfileConnection(_ uint32,
 		TechnologyUrlSegments: []string{"iac", "dockerfile"},
 	}
 
+	var repoURL, repoOrg, repoName string
 	if url, ok := conf.Options["ssh-url"]; ok {
 		domain, org, repo, err := urlx.ParseGitSshUrl(url)
 		if err != nil {
@@ -76,6 +84,15 @@ func NewDockerfileConnection(_ uint32,
 		asset.PlatformIds = []string{platformID}
 		asset.Name = "Dockerfile analysis " + org + "/" + repo
 
+		repoOrg = org
+		repoName = repo
+		// prefer the explicit http-url for the clickable repository link;
+		// fall back to reconstructing an https URL from the ssh-url parts
+		if httpURL := conf.Options["http-url"]; httpURL != "" {
+			repoURL = httpURL
+		} else {
+			repoURL = "https://" + domain + "/" + org + "/" + repo
+		}
 	} else {
 		h := sha256.New()
 		h.Write([]byte(absSrc))
@@ -91,7 +108,10 @@ func NewDockerfileConnection(_ uint32,
 		LocalConnection: localConn,
 		// here we must use the absolute path of the Dockerfile so
 		// that we find the file downstream
-		FileAbsSrc: absSrc,
+		FileAbsSrc:     absSrc,
+		RepositoryURL:  repoURL,
+		RepositoryOrg:  repoOrg,
+		RepositoryName: repoName,
 	}
 
 	if slices.Contains(localFamily, "darwin") {
