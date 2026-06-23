@@ -232,6 +232,7 @@ use (
    ./mql/providers/openai
    ./mql/providers/openstack
    ./mql/providers/proxmox
+   ./mql/providers/rippling
    ./mql/providers/shodan
    ./mql/providers/slack
    ./mql/providers/snowflake

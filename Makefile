@@ -240,6 +240,7 @@ PROVIDERS := \
 	openstack \
 	os \
 	proxmox \
+	rippling \
 	shodan \
 	slack \
 	snowflake \
